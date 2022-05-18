@@ -1,0 +1,25 @@
+{
+  "name": "NFT_CONTRACT",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.1",
+    "express": "^4.18.1",
+    "mongodb": "^4.6.0",
+    "shortid": "^2.2.16",
+    "solc": "^0.8.13",
+    "truffle-contract": "^4.0.31",
+    "web3": "^1.7.3"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.16"
+  },
+  "scripts": {
+    "start": "node --experimental-json-modules server.js",
+    "dev": "nodemon --experimental-json-modules server.js"
+  },
+  "type": "module"
+}
