@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import DB_CONNECTION from './db-connection.js'
 
 const app = express()
 const PORT = process.env.PORT || 8084
@@ -28,9 +29,12 @@ app.use((err, req, res, next) => {
 })
 
 try {
-  app.listen(PORT, () => {
-    console.log('connecting DB ...')
-    console.log(`running on port ${PORT}`)
+  DB_CONNECTION.then(() => {
+    console.log('listening')
+    app.listen(PORT, () => {
+      console.log('connecting DB ...')
+      console.log(`running on port ${PORT}`)
+    })
   })
 } catch (error) {
   console.log(error.message)

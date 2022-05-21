@@ -18,6 +18,6 @@ const MintSchema = new mongoose.Schema(
   { timestamps: true },
 )
 
-export const Mint = mongoose.model('mint', MintSchema)
+export const Minting = mongoose.model('mint', MintSchema)
 
 export default Deployment

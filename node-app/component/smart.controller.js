@@ -1,5 +1,5 @@
 import Web3 from 'web3'
-import Deployment, { Mint } from './smart.model.js'
+import Deployment, { Minting } from './smart.model.js'
 
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
@@ -41,7 +41,7 @@ export const deployment = async (req, res) => {
           contractAddress: res_.contractAddress,
           deployerAddress,
         })
-        await newRecord.save()
+        newRecord.save()
 
         res.status(200).json({ message: res_.contractAddress })
       })
@@ -77,9 +77,19 @@ export const Mint = async (req, res) => {
         (err, txHash) => {
           if (err) res.status(500).json({ err: err.message })
           else {
-            let newMintRecord  = new Mint({toAddress:address, refContract:contractAddress, txHash});
-            await newMintRecord.save()
-            res.status(200).json({ nftID: txHash })
+            let newMintRecord = new Minting({
+              toAddress: address,
+              refContract: contractAddress,
+              txHash,
+            })
+            newMintRecord.save((er, result) => {
+              if (er) {
+                console.log(er)
+              } else {
+                console.log(result)
+                res.status(200).json({ nftID: txHash })
+              }
+            })
           }
           //   save the txHash to the DB.
         },
