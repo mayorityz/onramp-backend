@@ -1,7 +1,5 @@
 import Web3 from 'web3'
-import path from 'path'
-import solc from 'solc'
-import { readFileSync } from 'fs'
+import Deployment, { Mint } from './smart.model.js'
 
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
@@ -10,13 +8,13 @@ const artifact = require('../../build/contracts/MyNFT.json')
 // let web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:7545'))
 
 export const deployment = async (req, res) => {
+  let deployerAddress = '0x1ab31Fd47c3DF0747121e2dc12193a1758dcd600'
+  let deployerPrivKey =
+    'bbf4f2fd2615abb23f43aac986964338cca0585cc0933ce1662d92cb93897e3c'
+
   try {
     let bytecode = artifact.bytecode
     let abi = artifact.abi
-
-    const privKey =
-      'bbf4f2fd2615abb23f43aac986964338cca0585cc0933ce1662d92cb93897e3c'
-    const address = '0x1ab31Fd47c3DF0747121e2dc12193a1758dcd600'
 
     const web3 = new Web3('http://127.0.0.1:7545')
 
@@ -27,17 +25,24 @@ export const deployment = async (req, res) => {
     })
     const createTransaction = await web3.eth.accounts.signTransaction(
       {
-        from: address,
+        from: deployerAddress,
         data: incrementerTx.encodeABI(),
         gas: 3000000,
       },
-      privKey,
+      deployerPrivKey,
     )
     web3.eth
       .sendSignedTransaction(createTransaction.rawTransaction)
       .then((res_) => {
         console.log('Contract deployed at address', res_.contractAddress)
         // save contract address to DB
+
+        let newRecord = new Deployment({
+          contractAddress: res_.contractAddress,
+          deployerAddress,
+        })
+        await newRecord.save()
+
         res.status(200).json({ message: res_.contractAddress })
       })
   } catch (error) {
@@ -71,7 +76,11 @@ export const Mint = async (req, res) => {
         },
         (err, txHash) => {
           if (err) res.status(500).json({ err: err.message })
-          else res.status(200).json({ nftID: txHash })
+          else {
+            let newMintRecord  = new Mint({toAddress:address, refContract:contractAddress, txHash});
+            await newMintRecord.save()
+            res.status(200).json({ nftID: txHash })
+          }
           //   save the txHash to the DB.
         },
       )
