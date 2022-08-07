@@ -1,9 +1,9 @@
 import express from 'express'
-import { deployment, Mint } from './smart.controller.js'
+import { GetBalance, OnRamp } from './smart.controller.js'
 
 const Router = express.Router()
 
-Router.get('/deploy', deployment)
-Router.post('/mint', Mint)
+Router.post('/getBalance', GetBalance)
+Router.post('/mint', OnRamp)
 
 export default Router

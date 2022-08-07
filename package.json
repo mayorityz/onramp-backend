@@ -1,18 +1,21 @@
 {
-  "name": "NFT_CONTRACT",
+  "name": "onramp",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
     "@openzeppelin/contracts": "^4.6.0",
+    "bip39": "^3.0.4",
     "cors": "^2.8.5",
     "dotenv": "^16.0.1",
+    "ethers": "^5.6.9",
     "express": "^4.18.1",
     "mongodb": "^4.6.0",
     "mongoose": "^6.3.4",
     "shortid": "^2.2.16",
     "solc": "^0.8.13",
     "truffle-contract": "^4.0.31",
+    "truffle-flatten": "^1.0.8",
     "web3": "^1.7.3"
   },
   "devDependencies": {

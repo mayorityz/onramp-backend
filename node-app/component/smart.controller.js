@@ -1,100 +1,87 @@
 import Web3 from 'web3'
-import Deployment, { Minting } from './smart.model.js'
+import { ethers } from 'ethers'
 
-import { createRequire } from 'module'
-const require = createRequire(import.meta.url)
-const artifact = require('../../build/contracts/MyNFT.json')
+import { generateMnemonic } from 'bip39'
+import { ABI } from '../ABI/contractAbi.js'
 
-// let web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:7545'))
+let mainContract = '0x2c176dfD1a27e8c3553d9DA369d16AC7d26A78dE'
 
-export const deployment = async (req, res) => {
-  let deployerAddress = '0x1ab31Fd47c3DF0747121e2dc12193a1758dcd600'
-  let deployerPrivKey =
-    'bbf4f2fd2615abb23f43aac986964338cca0585cc0933ce1662d92cb93897e3c'
-
+export const GenerateWallet = async (req, res) => {
+  let generateSeedPhrase = generateMnemonic()
   try {
-    let bytecode = artifact.bytecode
-    let abi = artifact.abi
-
-    const web3 = new Web3('http://127.0.0.1:7545')
-
-    const incrementer = new web3.eth.Contract(abi)
-
-    const incrementerTx = incrementer.deploy({
-      data: bytecode,
-    })
-    const createTransaction = await web3.eth.accounts.signTransaction(
-      {
-        from: deployerAddress,
-        data: incrementerTx.encodeABI(),
-        gas: 3000000,
-      },
-      deployerPrivKey,
-    )
-    web3.eth
-      .sendSignedTransaction(createTransaction.rawTransaction)
-      .then((res_) => {
-        console.log('Contract deployed at address', res_.contractAddress)
-        // save contract address to DB
-
-        let newRecord = new Deployment({
-          contractAddress: res_.contractAddress,
-          deployerAddress,
-        })
-        newRecord.save()
-
-        res.status(200).json({ message: res_.contractAddress })
-      })
+    const hdNode = ethers.utils.HDNode.fromMnemonic(generateSeedPhrase)
+    const newWallet = new ethers.Wallet(hdNode)
+    return { publicKey: newWallet.address, privateKey: newWallet.privateKey }
   } catch (error) {
-    res.status(500).json({ contractAddress: error.message })
+    throw error.message
   }
 }
 
-export const Mint = async (req, res) => {
+export const GetBalance = async (req, res) => {
+  let { walletAddress } = req.body
   try {
-    const { address, contractAddress } = req.body
-
-    console.log(`address : ${address}`)
-    console.log(`contract address : ${contractAddress}`)
-
-    //   make calls the contract address
     const web3 = new Web3('http://127.0.0.1:7545')
-    let Contract = new web3.eth.Contract(artifact.abi, contractAddress)
+    let Contract = new web3.eth.Contract(ABI.abi, mainContract)
 
-    //! fetch the estimated gas in some cases
-
-    await Contract.methods
-      .mintNFT(
-        address,
-        'https://images.launchbox-app.com/87c85520-878a-445e-9e93-e912c8bb08a.jpg',
-      )
-      .send(
-        {
-          from: '0x1ab31Fd47c3DF0747121e2dc12193a1758dcd600',
-          gas: '173859',
-          gasLimit: '173859',
-        },
-        (err, txHash) => {
-          if (err) res.status(500).json({ err: err.message })
-          else {
-            let newMintRecord = new Minting({
-              toAddress: address,
-              refContract: contractAddress,
-              txHash,
-            })
-            newMintRecord.save((er, result) => {
-              if (er) {
-                console.log(er)
-              } else {
-                console.log(result)
-                res.status(200).json({ nftID: txHash })
-              }
-            })
-          }
-          //   save the txHash to the DB.
-        },
-      )
+    Contract.methods.balanceOf(walletAddress).call((err, data) => {
+      if (err) res.status(500).json({ error: err })
+      else
+        res
+          .status(200)
+          .json({ message: 'success', balance: web3.utils.fromWei(data) })
+    })
   } catch (error) {
-    res.status(500).json({ err: error.message })
+    console.log(error.message)
+  }
+}
+
+/**
+ * transfer value from the main account.
+ * @param {*} req
+ * @param {*} res
+ */
+export const OnRamp = async (req, res) => {
+  let { walletAddress, amount } = req.body
+  try {
+    const web3 = new Web3('http://127.0.0.1:7545')
+    let Contract = new web3.eth.Contract(ABI.abi, mainContract, {
+      from: '0x60F7700CBE9FDCd4cFa31a60f0AEe40D7cd4EE30',
+    })
+    let _amount = web3.utils.toHex(web3.utils.toWei(amount))
+
+    let data = Contract.methods.transfer(walletAddress, _amount).encodeABI()
+
+    let txObj = {
+      gas: web3.utils.toHex(100000),
+      to: mainContract,
+      value: '0x00',
+      data: data,
+      from: '0x60f7700cbe9fdcd4cfa31a60f0aee40d7cd4ee30',
+    }
+
+    web3.eth.accounts.signTransaction(
+      txObj,
+      '623b8cd4b894b7143bc7fa06b706babb0960db1b76a3efa8b78f2b7141650b6c',
+      (err_, signedTx) => {
+        if (err_) {
+          return callback(err_)
+        } else {
+          console.log(signedTx)
+
+          return web3.eth.sendSignedTransaction(
+            signedTx.rawTransaction,
+            (err, res_) => {
+              if (err) {
+                console.log(err)
+              } else {
+                res.status(201).json({ message: 'successful', hash: res_ })
+              }
+            },
+          )
+        }
+      },
+    )
+  } catch (error) {
+    throw error.message
   }
 }
